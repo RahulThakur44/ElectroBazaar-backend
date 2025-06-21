@@ -1,5 +1,6 @@
 const Product = require('../models/productModel');
 const path = require('path');
+const fs = require('fs');
 
 // Get all products
 const getProducts = (req, res, next) => {
@@ -24,6 +25,17 @@ const getProductById = (req, res, next) => {
   });
 };
 
+// ✅ Get products by category (NEW for Related Products)
+{/*const getProductsByCategory = (req, res, next) => {
+  const { category } = req.params;
+  Product.getByCategory(category, (err, products) => {
+    if (err) return next(err);
+    const imageBaseUrl = 'http://localhost:5000/uploads/';
+    products.forEach(p => p.image = imageBaseUrl + p.image);
+    res.status(200).json({ products });
+  });
+};*/}
+
 // Add product
 const addProduct = (req, res, next) => {
   const { name, description, price, category, stock, status } = req.body;
@@ -43,7 +55,7 @@ const addProduct = (req, res, next) => {
 // Update product
 const updateProduct = (req, res, next) => {
   const { id } = req.params;
-  const { name, description, price, category, stock, status, oldImage } = req.body;
+  const { name, description, price, category, stock, status } = req.body;
 
   if (!name || !price || !category) {
     return res.status(400).json({ message: 'Required fields missing' });
@@ -53,10 +65,10 @@ const updateProduct = (req, res, next) => {
     if (err) return next(err);
     if (result.length === 0) return res.status(404).json({ message: 'Product not found' });
 
-    let image = result[0].image; // purani image by default
+    let image = result[0].image;
 
     if (req.file) {
-      image = req.file.filename; // naya image mila toh
+      image = req.file.filename;
     }
 
     const updatedProduct = { name, description, price, category, image, stock, status };
@@ -84,6 +96,7 @@ const deleteProduct = (req, res, next) => {
 module.exports = {
   getProducts,
   getProductById,
+ // getProductsByCategory, // ✅ Export new function
   addProduct,
   updateProduct,
   deleteProduct,

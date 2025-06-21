@@ -1,14 +1,17 @@
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 require("dotenv").config();
 
+// Register Controller
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
     const existing = await User.findByEmail(email);
-    if (existing) return res.status(400).json({ success: false, message: "Email already exists" });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Email already exists" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await User.create({ name, email, password: hashedPassword });
@@ -19,17 +22,24 @@ exports.register = async (req, res) => {
   }
 };
 
+// Login Controller
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findByEmail(email);
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ success: false, message: "Invalid credentials" });
+    if (!match) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET_KEY, { expiresIn: "1d" });
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET_KEY, {
+      expiresIn: "1d",
+    });
 
     res.json({ success: true, message: "Login successful", token });
   } catch (err) {

@@ -48,6 +48,9 @@ app.use("/api/protected", protectedRoute);
 
 // Global error handler
 app.use(errorHandler);
+app.get("/", (req, res) => {
+  res.send("ElectroBazaar Backend is live!");
+});
 
 // Start server
 const PORT = process.env.PORT || 5000;

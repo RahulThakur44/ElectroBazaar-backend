@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -13,7 +12,7 @@ const paymentRoutes = require("./routes/payment");
 const protectedRoute = require("./routes/protectedRoute");
 const orderRoutes = require('./routes/orderRoutes');
 const analyticsRoutes = require('./routes/analytics');
- 
+
 // Middleware
 const verifyToken = require("./middleware/verifyToken");
 const errorHandler = require("./middleware/errorMiddleware");
@@ -24,16 +23,19 @@ const app = express();
 // Middleware setup
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ❌ REMOVE local uploads folder static serve
+ //app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Public Routes
-app.use("/api", authRoutes);              // Login/Register
-app.use("/api/users", userRoutes);        // User CRUD
-app.use("/api/categories", categoryRoutes); // Category management
+app.use("/api", authRoutes);                // Login/Register
+app.use("/api/users", userRoutes);          // User CRUD
+app.use("/api/categories", categoryRoutes); // Categories
 app.use("/api/products", productRoutes);    // Products
 app.use("/api/payments", paymentRoutes);    // Payment
- app.use('/api/orders', orderRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use("/api/orders", orderRoutes);        // Orders
+app.use("/api/analytics", analyticsRoutes); // Analytics
+
 // Protected route example
 app.get("/api/profile", verifyToken, (req, res) => {
   res.json({
@@ -48,6 +50,8 @@ app.use("/api/protected", protectedRoute);
 
 // Global error handler
 app.use(errorHandler);
+
+// Test home route
 app.get("/", (req, res) => {
   res.send("ElectroBazaar Backend is live!");
 });

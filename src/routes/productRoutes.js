@@ -1,35 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const {
-  getProducts,
-  getProductById,
-  addProduct,
-//  getProductsByCategory, 
-  updateProduct,
-  deleteProduct
-} = require('../controllers/productController');
+const upload = require('../middleware/cloudinary');
+const productController = require('../controllers/productController');
 
-// Create uploads folder if not exists
-const uploadPath = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadPath),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
-});
-
-const upload = multer({ storage });
-
-// Routes
-//router.get('/categories/:category',productController.getProductsByCategory);
-
-router.get('/', getProducts);
-router.get('/:id', getProductById);
-router.post('/', upload.single('image'), addProduct);
-router.put('/:id', upload.single('image'), updateProduct);
-router.delete('/:id', deleteProduct);
+router.get('/', productController.getProducts);
+router.get('/:id', productController.getProductById);
+router.post('/', upload.single('image'), productController.addProduct);
+router.put('/:id', upload.single('image'), productController.updateProduct);
+router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;

@@ -1,102 +1,104 @@
 const Product = require('../models/productModel');
-const path = require('path');
-const fs = require('fs');
 
-// Get all products
+// ✅ GET All Products
 const getProducts = (req, res, next) => {
   Product.getAll((err, products) => {
     if (err) return next(err);
-    const imageBaseUrl = 'http://localhost:5000/uploads/';
-    products.forEach(p => p.image = imageBaseUrl + p.image);
     res.status(200).json({ products });
   });
 };
 
-// Get product by ID
+// ✅ GET Product by ID
 const getProductById = (req, res, next) => {
   const { id } = req.params;
   Product.getById(id, (err, result) => {
     if (err) return next(err);
-    if (result.length === 0) return res.status(404).json({ message: 'Product not found' });
-
-    const product = result[0];
-    product.image = 'http://localhost:5000/uploads/' + product.image;
-    res.status(200).json({ product });
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    res.status(200).json({ product: result[0] });
   });
 };
 
-// ✅ Get products by category (NEW for Related Products)
-{/*const getProductsByCategory = (req, res, next) => {
-  const { category } = req.params;
-  Product.getByCategory(category, (err, products) => {
-    if (err) return next(err);
-    const imageBaseUrl = 'http://localhost:5000/uploads/';
-    products.forEach(p => p.image = imageBaseUrl + p.image);
-    res.status(200).json({ products });
-  });
-};*/}
-
-// Add product
+// ✅ ADD Product (with Cloudinary Image Upload)
 const addProduct = (req, res, next) => {
   const { name, description, price, category, stock, status } = req.body;
-  const image = req.file ? req.file.filename : '';
+  const image = req.file?.path || ''; // Cloudinary URL will be in req.file.path
 
-  if (!name || !price || !category) {
+  // Debug log (optional)
+  console.log('📦 Add Product:', { ...req.body, image });
+
+  // Validation
+  if (!name || !price || !category || !image) {
     return res.status(400).json({ message: 'Required fields missing' });
   }
 
-  const newProduct = { name, description, price, category, image, stock, status };
-  Product.create(newProduct, (err) => {
+  const newProduct = {
+    name,
+    description: description || '',
+    price,
+    category,
+    image,
+    stock: stock || 0,
+    status: status || 'active',
+  };
+
+  Product.create(newProduct, (err, result) => {
     if (err) return next(err);
-    res.status(201).json({ message: 'Product added successfully', product: newProduct });
+    res.status(201).json({
+      message: 'Product added successfully',
+      product: newProduct,
+    });
   });
 };
 
-// Update product
+// ✅ UPDATE Product (with optional new image upload)
 const updateProduct = (req, res, next) => {
   const { id } = req.params;
   const { name, description, price, category, stock, status } = req.body;
 
-  if (!name || !price || !category) {
-    return res.status(400).json({ message: 'Required fields missing' });
-  }
-
   Product.getById(id, (err, result) => {
     if (err) return next(err);
-    if (result.length === 0) return res.status(404).json({ message: 'Product not found' });
-
-    let image = result[0].image;
-
-    if (req.file) {
-      image = req.file.filename;
+    if (result.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
     }
 
-    const updatedProduct = { name, description, price, category, image, stock, status };
+    const existing = result[0];
+    const image = req.file?.path || existing.image;
+
+    const updatedProduct = {
+      name: name || existing.name,
+      description: description || existing.description,
+      price: price || existing.price,
+      category: category || existing.category,
+      image,
+      stock: stock !== undefined ? stock : existing.stock,
+      status: status || existing.status,
+    };
 
     Product.update(id, updatedProduct, (err, result) => {
       if (err) return next(err);
-      if (result.affectedRows === 0) return res.status(404).json({ message: 'Product not found' });
-
       res.status(200).json({ message: 'Product updated successfully' });
     });
   });
 };
 
-// Delete product
+// ✅ DELETE Product
 const deleteProduct = (req, res, next) => {
   const { id } = req.params;
   Product.deleteProduct(id, (err, result) => {
     if (err) return next(err);
-    if (result.affectedRows === 0) return res.status(404).json({ message: 'Product not found' });
-
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
     res.status(200).json({ message: 'Product deleted successfully' });
   });
 };
 
+// ✅ EXPORT all handlers
 module.exports = {
   getProducts,
   getProductById,
- // getProductsByCategory, // ✅ Export new function
   addProduct,
   updateProduct,
   deleteProduct,

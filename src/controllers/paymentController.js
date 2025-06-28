@@ -9,7 +9,7 @@ exports.createRazorpayOrder = async (req, res) => {
     if (!amount) return res.status(400).json({ message: 'Amount is required' });
 
     const options = {
-      amount: parseInt(amount * 100), // Razorpay expects paisa
+      amount: amountInPaise, // Razorpay expects paisa
       currency: 'INR',
       receipt: `order_rcptid_${shortid.generate()}`,
     };

@@ -8,13 +8,16 @@ exports.createRazorpayOrder = async (req, res) => {
     const { amount } = req.body;
     if (!amount) return res.status(400).json({ message: 'Amount is required' });
 
+    const amountInPaise = Math.round(amount * 100); // ✅ convert ₹ to paise
+
     const options = {
-      amount: amountInPaise, // Razorpay expects paisa
+      amount: amountInPaise,
       currency: 'INR',
       receipt: `order_rcptid_${shortid.generate()}`,
     };
 
     const order = await razorpay.orders.create(options);
+
     res.status(201).json({
       id: order.id,
       currency: order.currency,

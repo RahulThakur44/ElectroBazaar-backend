@@ -1,69 +1,71 @@
 const Product = require('../models/productModel');
 
 // ✅ GET All Products
-const getProducts = (req, res, next) => {
-  Product.getAll((err, products) => {
-    if (err) return next(err);
+const getProducts = async (req, res, next) => {
+  try {
+    const products = await Product.getAll();
     res.status(200).json({ products });
-  });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ✅ GET Product by ID
-const getProductById = (req, res, next) => {
-  const { id } = req.params;
-  Product.getById(id, (err, result) => {
-    if (err) return next(err);
-    if (result.length === 0) {
+const getProductById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.getById(id);
+    if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.status(200).json({ product: result[0] });
-  });
+    res.status(200).json({ product });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// ✅ ADD Product (with Cloudinary Image Upload)
-const addProduct = (req, res, next) => {
-  const { name, description, price, category, stock, status } = req.body;
-  const image = req.file?.path || ''; // Cloudinary URL will be in req.file.path
+// ✅ ADD Product
+const addProduct = async (req, res, next) => {
+  try {
+    const { name, description, price, category, stock, status } = req.body;
+    const image = req.file?.path || '';
 
-  // Debug log (optional)
-  console.log('📦 Add Product:', { ...req.body, image });
+    if (!name || !price || !category || !image) {
+      return res.status(400).json({ message: 'Required fields missing' });
+    }
 
-  // Validation
-  if (!name || !price || !category || !image) {
-    return res.status(400).json({ message: 'Required fields missing' });
-  }
+    const newProduct = {
+      name,
+      description: description || '',
+      price,
+      category,
+      image,
+      stock: stock || 0,
+      status: status || 'active',
+    };
 
-  const newProduct = {
-    name,
-    description: description || '',
-    price,
-    category,
-    image,
-    stock: stock || 0,
-    status: status || 'active',
-  };
+    const productId = await Product.create(newProduct);
 
-  Product.create(newProduct, (err, result) => {
-    if (err) return next(err);
     res.status(201).json({
       message: 'Product added successfully',
-      product: newProduct,
+      product: { id: productId, ...newProduct },
     });
-  });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// ✅ UPDATE Product (with optional new image upload)
-const updateProduct = (req, res, next) => {
-  const { id } = req.params;
-  const { name, description, price, category, stock, status } = req.body;
+// ✅ UPDATE Product
+const updateProduct = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, description, price, category, stock, status } = req.body;
 
-  Product.getById(id, (err, result) => {
-    if (err) return next(err);
-    if (result.length === 0) {
+    const existing = await Product.getById(id);
+    if (!existing) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const existing = result[0];
     const image = req.file?.path || existing.image;
 
     const updatedProduct = {
@@ -76,26 +78,32 @@ const updateProduct = (req, res, next) => {
       status: status || existing.status,
     };
 
-    Product.update(id, updatedProduct, (err, result) => {
-      if (err) return next(err);
+    const success = await Product.update(id, updatedProduct);
+
+    if (success) {
       res.status(200).json({ message: 'Product updated successfully' });
-    });
-  });
+    } else {
+      res.status(500).json({ message: 'Failed to update product' });
+    }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ✅ DELETE Product
-const deleteProduct = (req, res, next) => {
-  const { id } = req.params;
-  Product.deleteProduct(id, (err, result) => {
-    if (err) return next(err);
-    if (result.affectedRows === 0) {
+const deleteProduct = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const success = await Product.deleteProduct(id);
+    if (!success) {
       return res.status(404).json({ message: 'Product not found' });
     }
     res.status(200).json({ message: 'Product deleted successfully' });
-  });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// ✅ EXPORT all handlers
 module.exports = {
   getProducts,
   getProductById,

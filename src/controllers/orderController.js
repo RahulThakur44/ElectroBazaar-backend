@@ -1,30 +1,45 @@
 const db = require('../config/db');
 
-// ✅ Create New Order with Items
+// ✅ Create New Order with Items (COD or Razorpay)
 exports.createOrder = (req, res) => {
+  console.log("📦 Order Request Body:", req.body);
+
   const {
     user_id,
     total_amount,
     payment_method,
     address,
     contact,
-    products, // [{ product_id, qty, price }]
+    products, // expected: [{ product_id, qty, price }]
   } = req.body;
 
+  // ❌ Validate required fields
   if (
     !user_id || !total_amount || !payment_method ||
     !address || !contact || !Array.isArray(products) || products.length === 0
   ) {
+    console.log("❌ Missing order details");
     return res.status(400).json({ message: 'Missing order details' });
   }
 
+  // ❌ Validate product structure
+  const invalidProduct = products.find(p => !p.product_id || !p.qty || !p.price);
+  if (invalidProduct) {
+    console.log("❌ Invalid product in order:", invalidProduct);
+    return res.status(400).json({ message: 'Invalid product structure' });
+  }
+
+  // ✅ Insert into orders table
   const orderSql = `
     INSERT INTO orders (user_id, total_amount, payment_method, status, created_at, address, contact)
     VALUES (?, ?, ?, 'Pending', NOW(), ?, ?)
   `;
 
   db.query(orderSql, [user_id, total_amount, payment_method, address, contact], (err, result) => {
-    if (err) return res.status(500).json({ message: 'Error creating order', error: err });
+    if (err) {
+      console.error("❌ Error inserting order:", err);
+      return res.status(500).json({ message: 'Error creating order', error: err });
+    }
 
     const orderId = result.insertId;
 
@@ -38,9 +53,13 @@ exports.createOrder = (req, res) => {
     const itemsSql = `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?`;
 
     db.query(itemsSql, [orderItems], (err2) => {
-      if (err2) return res.status(500).json({ message: 'Failed to insert order items', error: err2 });
+      if (err2) {
+        console.error("❌ Error inserting order items:", err2);
+        return res.status(500).json({ message: 'Failed to insert order items', error: err2 });
+      }
 
-      res.status(201).json({ message: 'Order created successfully', orderId });
+      console.log("✅ Order placed successfully with ID:", orderId);
+      return res.status(201).json({ message: 'Order created successfully', orderId });
     });
   });
 };
@@ -132,6 +151,10 @@ exports.getOrderById = (req, res) => {
 exports.updateOrderStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ message: 'Status is required' });
+  }
 
   const sql = `UPDATE orders SET status = ? WHERE id = ?`;
   db.query(sql, [status, id], (err) => {

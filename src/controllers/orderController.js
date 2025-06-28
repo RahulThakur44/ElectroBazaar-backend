@@ -27,9 +27,7 @@ exports.createOrder = (req, res) => {
     orderSql,
     [user_id, total_amount, payment_method, address, contact],
     (err, result) => {
-      if (err) {
-        return res.status(500).json({ message: 'Database error while creating order', error: err });
-      }
+      if (err) return res.status(500).json({ message: 'Error creating order', error: err });
 
       const orderId = result.insertId;
 
@@ -43,57 +41,66 @@ exports.createOrder = (req, res) => {
       const itemsSql = `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?`;
 
       db.query(itemsSql, [orderItems], (err2) => {
-        if (err2) {
-          return res.status(500).json({ message: 'Failed to insert order items', error: err2 });
-        }
+        if (err2) return res.status(500).json({ message: 'Failed to insert order items', error: err2 });
 
-        res.status(201).json({
-          message: 'Order created successfully',
-          orderId,
-        });
+        res.status(201).json({ message: 'Order created successfully', orderId });
       });
     }
   );
 };
 
-// ✅ Get All Orders with Products
-// ✅ Get All Orders with Products (FINAL FIXED VERSION)
-    // ✅ Get All Orders with Grouped Products
+// ✅ FIXED: Get All Orders with Products
+// ✅ Get All Orders with Products (FIXED)
 exports.getAllOrders = (req, res) => {
-  const ordersSql = `SELECT * FROM orders ORDER BY created_at DESC`;
+  const sql = `
+    SELECT 
+      o.id AS order_id,
+      o.user_id,
+      o.total_amount,
+      o.payment_method,
+      o.status,
+      o.created_at,
+      o.address,
+      o.contact,
+      p.name AS product_name,
+      p.image AS product_image
+    FROM orders o
+    LEFT JOIN order_items oi ON o.id = oi.order_id
+    LEFT JOIN products p ON p.id = oi.product_id
+    ORDER BY o.created_at DESC
+  `;
 
-  db.query(ordersSql, async (err, orders) => {
+  db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ message: 'Database error', error: err });
 
-    const ordersWithProducts = await Promise.all(
-      orders.map(order => {
-        return new Promise((resolve, reject) => {
-          const itemsSql = `
-            SELECT 
-              p.name AS product_name,
-              p.image AS product_image
-            FROM order_items oi
-            JOIN products p ON oi.product_id = p.id
-            WHERE oi.order_id = ?
-          `;
+    const grouped = {};
+    results.forEach(row => {
+      const orderId = row.order_id;
+      if (!grouped[orderId]) {
+        grouped[orderId] = {
+          id: orderId,
+          user_id: row.user_id,
+          total_amount: parseFloat(row.total_amount),
+          payment_method: row.payment_method,
+          status: row.status,
+          created_at: row.created_at,
+          address: row.address,
+          contact: row.contact,
+          products: [],
+        };
+      }
 
-          db.query(itemsSql, [order.id], (err2, items) => {
-            if (err2) return reject(err2);
-
-            resolve({
-              ...order,
-              total_amount: parseFloat(order.total_amount),
-              products: items
-            });
-          });
+      if (row.product_name && row.product_image) {
+        grouped[orderId].products.push({
+          product_name: row.product_name,
+          product_image: row.product_image,
         });
-      })
-    );
+      }
+    });
 
-    res.status(200).json(ordersWithProducts);
+    res.status(200).json(Object.values(grouped));
   });
 };
-
 
 
 // ✅ Get Order By ID (with items)
@@ -140,7 +147,7 @@ exports.updateOrderStatus = (req, res) => {
   });
 };
 
-// ✅ Delete Order (and its items)
+// ✅ Delete Order (and items)
 exports.deleteOrder = (req, res) => {
   const { id } = req.params;
 

@@ -12,6 +12,7 @@ const paymentRoutes = require("./routes/payment");
 const protectedRoute = require("./routes/protectedRoute");
 const orderRoutes = require('./routes/orderRoutes');
 const analyticsRoutes = require('./routes/analytics');
+const addressRoutes = require('./routes/addressRoutes');
 
 // Middleware
 const verifyToken = require("./middleware/verifyToken");
@@ -35,6 +36,7 @@ app.use("/api/products", productRoutes);    // Products
 app.use("/api/payments", paymentRoutes);    // Payment
 app.use("/api/orders", orderRoutes);        // Orders
 app.use("/api/analytics", analyticsRoutes); // Analytics
+app.use("/api/address", addressRoutes);
 
 // Protected route example
 app.get("/api/profile", verifyToken, (req, res) => {

@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const User = require("../models/User");
 require("dotenv").config();
 
-// Register Controller
+// Register
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -14,7 +14,7 @@ exports.register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({ name, email, password: hashedPassword });
+    const newUser = await User.create({ name, email, password: hashedPassword });
 
     res.status(201).json({ success: true, message: "User registered successfully" });
   } catch (err) {
@@ -22,7 +22,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login Controller
+// Login
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -37,9 +37,12 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET_KEY, {
-      expiresIn: "1d",
-    });
+    // ✅ Include id, email, name in JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "1d" }
+    );
 
     res.json({ success: true, message: "Login successful", token });
   } catch (err) {

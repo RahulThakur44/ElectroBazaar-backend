@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// ✅ Create Order
+// ✅ Create New Order with Items
 exports.createOrder = (req, res) => {
   const {
     user_id,
@@ -23,34 +23,29 @@ exports.createOrder = (req, res) => {
     VALUES (?, ?, ?, 'Pending', NOW(), ?, ?)
   `;
 
-  db.query(
-    orderSql,
-    [user_id, total_amount, payment_method, address, contact],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: 'Error creating order', error: err });
+  db.query(orderSql, [user_id, total_amount, payment_method, address, contact], (err, result) => {
+    if (err) return res.status(500).json({ message: 'Error creating order', error: err });
 
-      const orderId = result.insertId;
+    const orderId = result.insertId;
 
-      const orderItems = products.map(item => [
-        orderId,
-        item.product_id,
-        item.qty,
-        item.price
-      ]);
+    const orderItems = products.map(item => [
+      orderId,
+      item.product_id,
+      item.qty,
+      item.price
+    ]);
 
-      const itemsSql = `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?`;
+    const itemsSql = `INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ?`;
 
-      db.query(itemsSql, [orderItems], (err2) => {
-        if (err2) return res.status(500).json({ message: 'Failed to insert order items', error: err2 });
+    db.query(itemsSql, [orderItems], (err2) => {
+      if (err2) return res.status(500).json({ message: 'Failed to insert order items', error: err2 });
 
-        res.status(201).json({ message: 'Order created successfully', orderId });
-      });
-    }
-  );
+      res.status(201).json({ message: 'Order created successfully', orderId });
+    });
+  });
 };
 
-// ✅ FIXED: Get All Orders with Products
-// ✅ Get All Orders with Products (FIXED)
+// ✅ Get All Orders with Product Summary
 exports.getAllOrders = (req, res) => {
   const sql = `
     SELECT 
@@ -102,8 +97,7 @@ exports.getAllOrders = (req, res) => {
   });
 };
 
-
-// ✅ Get Order By ID (with items)
+// ✅ Get Single Order by ID with Items
 exports.getOrderById = (req, res) => {
   const { id } = req.params;
 
@@ -147,7 +141,7 @@ exports.updateOrderStatus = (req, res) => {
   });
 };
 
-// ✅ Delete Order (and items)
+// ✅ Delete Order and Items
 exports.deleteOrder = (req, res) => {
   const { id } = req.params;
 

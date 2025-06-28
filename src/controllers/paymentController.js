@@ -2,19 +2,14 @@ const db = require('../config/db');
 const razorpay = require('../config/razorpay');
 const shortid = require('shortid');
 
-// ✅ Razorpay Create Order API
+// ✅ Create Razorpay Order
 exports.createRazorpayOrder = async (req, res) => {
   try {
     const { amount } = req.body;
-
-    if (!amount) {
-      return res.status(400).json({ message: 'Amount is required' });
-    }
-
-    const amountInPaise = parseInt(amount * 100); // 👈 FIX
+    if (!amount) return res.status(400).json({ message: 'Amount is required' });
 
     const options = {
-      amount: amount, // Razorpay works in paisa
+      amount: parseInt(amount * 100), // Razorpay expects paisa
       currency: 'INR',
       receipt: `order_rcptid_${shortid.generate()}`,
     };
@@ -31,7 +26,7 @@ exports.createRazorpayOrder = async (req, res) => {
   }
 };
 
-// ✅ Create Payment
+// ✅ Record New Payment
 exports.createPayment = (req, res) => {
   const {
     order_id,
@@ -94,7 +89,7 @@ exports.getAllPayments = (req, res) => {
   });
 };
 
-// ✅ Get Payment By ID
+// ✅ Get Payment by ID
 exports.getPaymentById = (req, res) => {
   const { id } = req.params;
 
@@ -134,4 +129,3 @@ exports.deletePayment = (req, res) => {
     res.status(200).json({ message: 'Payment deleted successfully' });
   });
 };
-

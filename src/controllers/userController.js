@@ -3,11 +3,11 @@ const db = require('../config/db');
 // ✅ Get All Users
 exports.getAllUsers = async (req, res) => {
   try {
-    const [users] = await db.query('SELECT * FROM users ORDER BY id DESC');
+    const [users] = await db.query('SELECT id, name, email, role, status, created_at FROM users');
     res.status(200).json(users);
   } catch (error) {
-    console.error('Fetch users error:', error);
-    res.status(500).json({ message: 'Failed to fetch users', error });
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -15,18 +15,16 @@ exports.getAllUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   const { id } = req.params;
   try {
-    const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const [rows] = await db.query('SELECT id, name, email, role, status, created_at FROM users WHERE id = ?', [id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(rows[0]);
   } catch (error) {
-    console.error('Fetch user by ID error:', error);
-    res.status(500).json({ message: 'Failed to fetch user', error });
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// ✅ Update User
+// ✅ Update User (including role and status)
 exports.updateUser = async (req, res) => {
   const { id } = req.params;
   const { name, email, role, status } = req.body;
@@ -38,8 +36,8 @@ exports.updateUser = async (req, res) => {
     );
     res.status(200).json({ message: 'User updated successfully' });
   } catch (error) {
-    console.error('Update user error:', error);
-    res.status(500).json({ message: 'Failed to update user', error });
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -50,7 +48,7 @@ exports.deleteUser = async (req, res) => {
     await db.query('DELETE FROM users WHERE id = ?', [id]);
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error('Delete user error:', error);
-    res.status(500).json({ message: 'Failed to delete user', error });
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
